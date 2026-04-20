@@ -1,0 +1,73 @@
+package org.example.controller;
+
+import jakarta.servlet.http.HttpServletResponse;
+import org.example.dto.ItemDto;
+import org.example.model.Item;
+import org.example.service.ItemService;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+@RestController
+@RequestMapping("/items")
+public class InduElevatorsController {
+
+ @Autowired
+ ItemService itemService;
+   private static final Logger logger= LoggerFactory.getLogger(InduElevatorsController.class);
+    @PostMapping
+    public String addItems(@RequestBody ItemDto itemDto) {
+        logger.info("controller entered");
+        boolean returnValue = itemService.addItems(itemDto);
+
+        if (returnValue) {
+            return "Data saved";
+        } else {
+            return "Not saved";
+        }
+    }
+
+    @GetMapping("/download-pdf/{id}")
+    public void downloadPdf(@PathVariable String id,
+                            HttpServletResponse response) throws Exception {
+
+        String path = "C:/pdf/item_" + id + ".pdf";
+
+        Item item = itemService.getItemById(id);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, baos);
+
+        document.open();
+
+        if (item != null) {
+            document.add(new Paragraph("Hello PDF"));
+            document.add(new Paragraph("Item Name: " + item.getName()));
+            document.add(new Paragraph("Price: " + item.getCost()));
+        } else {
+            document.add(new Paragraph("Item not found"));
+        }
+
+        document.close();
+
+
+        // ✅ Send to Postman (download)
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=item_" + id + ".pdf");
+
+        response.getOutputStream().write(baos.toByteArray());
+        response.getOutputStream().flush();
+    }
+}
